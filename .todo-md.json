@@ -1,0 +1,16 @@
+{
+  "$schema": "./schemas/config.schema.json",
+  "roles": [],
+  "agents": [
+    "gemini-cli",
+    "codex-cli",
+    "codex",
+    "opencode",
+    "roocode",
+    "kilocode",
+    "pi",
+    "zcode",
+    "dsh"
+  ],
+  "strict": false
+}

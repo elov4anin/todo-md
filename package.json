@@ -1,0 +1,36 @@
+{
+  "name": "@elov4anin/todo-md",
+  "version": "1.0.0",
+  "private": true,
+  "description": "File-based kanban board for managing tasks in Markdown files",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "todo-md": "dist/bin/todo-md.js"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "docs/todo-md",
+    "schemas",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "compile": "node scripts/compile.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
+    "validate": "node dist/bin/todo-md.js validate .",
+    "check": "npm run typecheck && npm test && npm run compile && node scripts/verify-dist.mjs && npm run validate"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "chart.js": "^4.5.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}

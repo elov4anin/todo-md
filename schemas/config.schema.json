@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/prikotov/todo-md/blob/main/schemas/config.schema.json",
+  "title": "todo-md configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "roles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "agents": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" }, "uniqueItems": true },
+    "strict": { "type": "boolean" }
+  }
+}

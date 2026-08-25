@@ -1,0 +1,14 @@
+/vendor/
+/composer.lock
+/node_modules/
+/.test-dist/
+/.idea/
+/.vscode/
+*.swp
+*.swo
+
+# .agents/ — локальные skills/tools агента (напр. knowledge-extraction); не входят в публикуемый пакет
+/.task_token.json
+/.task_project.json
+/.task_config.json
+/.agents/
