@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/prikotov/todo-md/blob/main/schemas/config.schema.json",
+  "$id": "https://github.com/elov4anin/todo-md/blob/main/schemas/config.schema.json",
   "title": "todo-md configuration",
   "type": "object",
   "additionalProperties": false,

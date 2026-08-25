@@ -15,7 +15,7 @@ epic:
 author: Разработчик (pi)
 assignee: Разработчик (pi)
 branch: fix/cli-validate-index-set-multi
-pr: https://github.com/prikotov/todo-md/pull/27
+pr: https://github.com/elov4anin/todo-md/pull/27
 status: done
 ---
 

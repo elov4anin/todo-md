@@ -1,5 +1,5 @@
 ---
-package: prikotov/todo-md
+package: elov4anin/todo-md
 ---
 
 # Даты жизненного цикла (Lifecycle Dates)

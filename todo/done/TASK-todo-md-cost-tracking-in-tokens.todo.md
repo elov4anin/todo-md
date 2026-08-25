@@ -11,7 +11,7 @@ epic:
 author: Владелец проекта (codex-cli)
 assignee: Разработчик (codex-cli)
 branch: codex/cost-tracking-tokens
-pr: https://github.com/prikotov/todo-md/pull/9
+pr: https://github.com/elov4anin/todo-md/pull/9
 status: done
 ---
 

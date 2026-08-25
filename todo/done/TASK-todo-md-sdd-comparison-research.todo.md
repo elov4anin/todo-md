@@ -16,7 +16,7 @@ epic:
 author: Продакт (pi)
 assignee: Архитектор (pi)
 branch: feature/sdd-comparison-research
-pr: https://github.com/prikotov/todo-md/pull/19
+pr: https://github.com/elov4anin/todo-md/pull/19
 status: done
 ---
 

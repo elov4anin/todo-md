@@ -1,5 +1,5 @@
 ---
-package: prikotov/todo-md
+package: elov4anin/todo-md
 ---
 
 # Конфигурация пакета (.todo-md.json)
@@ -17,7 +17,7 @@ npx todo-md validate --config=path/to/.todo-md.json
 
 ```json
 {
-  "$schema": "./node_modules/@prikotov/todo-md/schemas/config.schema.json",
+  "$schema": "./node_modules/@elov4anin/todo-md/schemas/config.schema.json",
   "roles": ["Бэкендер", "Фронтендер", "Аналитик", "Архитектор"],
   "agents": ["codex-cli", "codex", "pi", "kilocode"],
   "strict": false

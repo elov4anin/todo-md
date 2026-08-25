@@ -15,7 +15,7 @@ epic:
 author: Технический писатель (pi)
 assignee: Технический писатель (pi)
 branch: task/docs-done-before-approval
-pr: https://github.com/prikotov/todo-md/pull/29
+pr: https://github.com/elov4anin/todo-md/pull/29
 status: done
 ---
 
@@ -26,23 +26,23 @@ status: done
 ### Проблема простыми словами (Problem)
 - Документация пакета предписывает переводить задачу в `done` **после апрува** PR — это провоцирует push в PR-ветку после апрува.
 - Branch protection «require approval on last push» сбрасывает апрув таким пушем: владелец апрувит повторно, процесс буксует.
-- Реальный Git-процесс проектов (пакет `prikotov/git-workflow`) выполняет done-sync **до** запроса апрува — документация противоречит практике.
+- Реальный Git-процесс проектов (пакет `elov4anin/git-workflow`) выполняет done-sync **до** запроса апрува — документация противоречит практике.
 - Распределяемые через `todo-md init` документы не помечены происхождением: непонятно, какие файлы в проекте-потребителе обслуживаются пакетом.
 
 ### Варианты или путь решения (Solution Sketch)
 - В `todo/AGENTS.md` (раздел «Завершение задачи») закрепить порядок: `pr` → `review` → зелёный CI → `done` → push → запрос апрува → merge; после апрува в PR-ветку не пушится ничего.
 - В `reference/STATUSES.md` скорректировать семантику `done`: работа завершена исполнителем и представлена к приёмке; момент перехода определяет Git-процесс проекта.
-- Промаркировать распределяемые документы front matter `package: prikotov/todo-md` (кроме `templates/*.md` — из них создаются задачи потребителя).
+- Промаркировать распределяемые документы front matter `package: elov4anin/todo-md` (кроме `templates/*.md` — из них создаются задачи потребителя).
 
 ### Ожидаемый результат (Expected Result)
-- Документация не провоцирует post-approval push: шаги завершения согласованы с `prikotov/git-workflow`.
+- Документация не провоцирует post-approval push: шаги завершения согласованы с `elov4anin/git-workflow`.
 - Указан путь возврата из `done` при замечаниях ревью (тем же коммитом, что вносит правки).
-- Каждый распределяемый документ начинается с `package: prikotov/todo-md`.
+- Каждый распределяемый документ начинается с `package: elov4anin/todo-md`.
 
 ## 1. Концепция и Цель (Concept and Goal)
 
 ### История (User Story)
-> Как исполнитель задач в проекте с `prikotov/git-workflow`, я хочу, чтобы документация todo-md описывала переход `done` до запроса апрува, чтобы мой push после апрува не сбрасывал решение владельца.
+> Как исполнитель задач в проекте с `elov4anin/git-workflow`, я хочу, чтобы документация todo-md описывала переход `done` до запроса апрува, чтобы мой push после апрува не сбрасывал решение владельца.
 
 ### Цель по SMART (Goal)
 - Устранить противоречие документации с Git-процессом «done до апрува» и промаркировать распределяемые документы — только документация, без изменений кода и поведения CLI.
@@ -59,7 +59,7 @@ status: done
 ### 🔴 Обязательно (Must Have)
 - [ ] `todo/AGENTS.md`, раздел «Завершение задачи»: порядок `done` до запроса апрува; после апрува — только merge; возврат из `done` при замечаниях тем же коммитом, что правки.
 - [ ] `reference/STATUSES.md`: п. 5 и подпись перехода `review --> done` отражают семантику «завершено исполнителем, представлено к приёмке»; момент перехода определяет Git-процесс проекта; диаграмма — порядок статусов, а не момент относительно merge; возврат из `done` допустим.
-- [ ] Front matter `package: prikotov/todo-md` первым блоком в `todo/AGENTS.md` и `docs/todo-md/**/*.md`, кроме `templates/*.md`.
+- [ ] Front matter `package: elov4anin/todo-md` первым блоком в `todo/AGENTS.md` и `docs/todo-md/**/*.md`, кроме `templates/*.md`.
 ### ⚫ Won't Have (Не будем делать)
 - Изменения кода `src/`, тестов и поведения CLI.
 - Маркировка `package` в `templates/task.md`, `templates/epic.md` — из шаблонов создаются задачи потребителя, `package` туда попадать не должен.
@@ -67,13 +67,13 @@ status: done
 ## 4. План реализации (Implementation Plan)
 1. [ ] Правка раздела «Завершение задачи» в `todo/AGENTS.md`.
 2. [ ] Правка `reference/STATUSES.md`: п. 5, диаграмма, секция «Завершенные».
-3. [ ] Добавление front matter `package: prikotov/todo-md` в 13 распределяемых документов.
+3. [ ] Добавление front matter `package: elov4anin/todo-md` в 13 распределяемых документов.
 4. [ ] `make check`, коммит по Conventional Commits.
 
 ## 5. Критерии приёмки (Definition of Done)
 - [ ] В `todo/AGENTS.md` нет шага «После апрува: done»; порядок завершения согласован с «done до апрува».
 - [ ] `STATUSES.md` не связывает `done` с Merge; указана допустимость возврата из `done`.
-- [ ] Все распределяемые документы, кроме шаблонов, начинаются с `package: prikotov/todo-md`.
+- [ ] Все распределяемые документы, кроме шаблонов, начинаются с `package: elov4anin/todo-md`.
 - [ ] `make check` зелёный; поведение CLI не изменилось.
 
 ## 6. Самопроверка (Verification)
@@ -85,7 +85,7 @@ php vendor/bin/todo-md validate
 - Front matter в docs-файлах не должен ломать рендер и валидацию: валидатор сканирует только `*.todo.md` в `todo/` — проверяется `make check`.
 
 ## 8. Источники (Sources)
-- Пакет `prikotov/git-workflow` — Git-процесс «done до апрува» (done-sync до запроса апрува; после апрува — только merge).
+- Пакет `elov4anin/git-workflow` — Git-процесс «done до апрува» (done-sync до запроса апрува; после апрува — только merge).
 - Branch protection `require_last_push_approval` (GitHub).
 - `src/TodoMd/Board.php` — `transition` не запрещает возврат из `done`.
 

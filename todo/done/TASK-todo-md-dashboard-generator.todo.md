@@ -11,7 +11,7 @@ epic:
 author: Владелец проекта (pi)
 assignee: Разработчик (pi)
 branch: feat/dashboard
-pr: https://github.com/prikotov/todo-md/pull/16
+pr: https://github.com/elov4anin/todo-md/pull/16
 status: done
 completed: 2026-08-19 17:37:03 (1787161023)
 ---

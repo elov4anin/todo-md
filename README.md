@@ -55,7 +55,7 @@ docs/todo-md/              ← документация (из пакета)
 ## Установка в проект
 
 ```bash
-npm install --save-dev github:prikotov/todo-md#v1.0.0
+npm install --save-dev github:elov4anin/todo-md#v1.0.0
 ```
 
 Для воспроизводимой установки используйте Git tag или полный commit SHA. Готовый

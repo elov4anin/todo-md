@@ -48,7 +48,7 @@ export function initProject(target: string, options: InitOptions = {}): InitResu
   copyTree(sourceDocs, resolve(targetDir, docsPath), docsPath, options.force === true, result);
   copyOne(agentsSource, resolve(targetDir, agentsPath), agentsPath, options.force === true, result);
   const config = `${JSON.stringify({
-    $schema: "./node_modules/@prikotov/todo-md/schemas/config.schema.json",
+    $schema: "./node_modules/@elov4anin/todo-md/schemas/config.schema.json",
     roles: [],
     agents: ["gemini-cli", "codex-cli", "codex", "opencode", "roocode", "kilocode", "pi"],
     strict: false,

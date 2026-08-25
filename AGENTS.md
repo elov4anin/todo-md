@@ -6,7 +6,7 @@
 
 ## Проект
 
-**prikotov/todo-md** — TypeScript/Node.js CLI: file-based kanban board для управления задачами в markdown-файлах с YAML front matter.
+**elov4anin/todo-md** — TypeScript/Node.js CLI: file-based kanban board для управления задачами в markdown-файлах с YAML front matter.
 
 Пакет подключается к проекту-потребителю как Git dependency через npm и запускается командой `npx todo-md`.
 
@@ -99,11 +99,11 @@ todo/                        # Внутренние задачи по дораб
 
 Правила работы с git — ветки, коммиты, PR, релизы, SemVer:
 
-- [Ветки](vendor/prikotov/git-workflow/docs/git-workflow/branches.md)
-- [Коммиты (Conventional Commits)](vendor/prikotov/git-workflow/docs/git-workflow/commits.md)
-- [Pull Request](vendor/prikotov/git-workflow/docs/git-workflow/pull-request.md)
-- [Code Review](vendor/prikotov/git-workflow/docs/git-workflow/code-review.md)
-- [Релизы и CHANGELOG](vendor/prikotov/git-workflow/docs/git-workflow/release.md)
+- [Ветки](vendor/elov4anin/git-workflow/docs/git-workflow/branches.md)
+- [Коммиты (Conventional Commits)](vendor/elov4anin/git-workflow/docs/git-workflow/commits.md)
+- [Pull Request](vendor/elov4anin/git-workflow/docs/git-workflow/pull-request.md)
+- [Code Review](vendor/elov4anin/git-workflow/docs/git-workflow/code-review.md)
+- [Релизы и CHANGELOG](vendor/elov4anin/git-workflow/docs/git-workflow/release.md)
 
 ---
 
