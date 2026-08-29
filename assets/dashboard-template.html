@@ -598,7 +598,7 @@ let whoChartInst = null;
   build();
 })();
 
-function esc(s){ return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])); }
 
 // ── Kanban board (groupable: status / epic) ──
 function sortByStatusThenName(a, b) {

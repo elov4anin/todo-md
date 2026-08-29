@@ -120,7 +120,7 @@ npx todo-md validate todo/TASK-todo-md-release-epic-layout.todo.md
 ## 8. Источники (Sources)
 
 - [Реализация каталогов эпиков](done/TASK-todo-md-epic-directory-layout.todo.md).
-- [Адаптация dashboard](TASK-todo-md-dashboard-epic-paths.todo.md).
+- [Адаптация dashboard](done/TASK-todo-md-dashboard-epic-paths.todo.md).
 - [Текущий changelog](../CHANGELOG.md).
 - `package.json` и `package-lock.json` — источники версии npm-пакета.
 - [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).

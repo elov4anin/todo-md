@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 import { board, createEpic, createTask, run } from "./support.js";
+
+function occurrences(haystack: string, needle: string): number {
+  return haystack.split(needle).length - 1;
+}
 
 test("init: scaffolds JSON config", () => {
   const root = board();
@@ -62,6 +67,77 @@ test("dashboard: recursively renders a task from an epic directory", () => {
   assert.equal(result.code, 0);
   assert.match(result.stdout, /TASK-child/u);
   assert.match(result.stdout, /todo\/EPIC-parent\/TASK-child\.todo\.md/u);
+});
+
+test("dashboard: directory mode links nested epic files across all zones without --base", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  for (const id of ["TASK-active", "TASK-back", "TASK-fin", "TASK-canc"]) {
+    const created = run(root, ["create", id, "--type=feat", "--author=Разработчик (codex)", "--epic=EPIC-parent", "--status=backlog"]);
+    assert.equal(created.code, 0, created.stderr);
+  }
+  assert.equal(run(root, ["start", "TASK-active", "--assignee=Разработчик (codex)"]).code, 0);
+  assert.equal(run(root, ["set", "TASK-fin", "pr=https://example.test/pr/1"]).code, 0);
+  assert.equal(run(root, ["done", "TASK-fin", "--assignee=Разработчик (codex)"]).code, 0);
+  assert.equal(run(root, ["cancel", "TASK-canc"]).code, 0);
+  const result = run(root, ["dashboard"]);
+  assert.equal(result.code, 0);
+  const expected: Record<string, string> = {
+    "EPIC-parent": "todo/EPIC-parent/EPIC-parent.todo.md",
+    "TASK-active": "todo/EPIC-parent/TASK-active.todo.md",
+    "TASK-back": "todo/backlog/EPIC-parent/TASK-back.todo.md",
+    "TASK-fin": "todo/done/EPIC-parent/TASK-fin.todo.md",
+    "TASK-canc": "todo/cancelled/EPIC-parent/TASK-canc.todo.md",
+  };
+  for (const [id, file] of Object.entries(expected)) {
+    assert.equal(occurrences(result.stdout, `"id": "${id}"`), 1, `${id} must appear exactly once`);
+    assert.equal(occurrences(result.stdout, `"url": ${JSON.stringify(pathToFileURL(resolve(root, file)).href)}`), 1, `${id} must link its actual file`);
+  }
+  // data that feeds task-card (ct-link) and epic-header (col-link) anchors
+  assert.ok(result.stdout.includes('"folder": "done"'));
+  assert.ok(result.stdout.includes('"folder": "cancelled"'));
+  assert.ok(result.stdout.includes('"folder": "backlog"'));
+  assert.ok(result.stdout.includes("ct-link") && result.stdout.includes("col-link"));
+});
+
+test("dashboard: JSONL with --base resolves relative nested paths", () => {
+  const root = board();
+  const jsonl = `${JSON.stringify({ id: "TASK-nested", kind: "TASK", title: "nested", file: "todo/EPIC-x/TASK-nested.todo.md", folder: "active", status: "todo" })}\n`;
+  const result = run(root, ["dashboard", "-", `--base=${root}`], jsonl);
+  assert.equal(result.code, 0);
+  assert.ok(result.stdout.includes(`"url": ${JSON.stringify(pathToFileURL(resolve(root, "todo/EPIC-x/TASK-nested.todo.md")).href)}`));
+});
+
+test("dashboard: JSONL without --base keeps no invented base and drops a malicious url", () => {
+  const root = board();
+  const jsonl = `${JSON.stringify({ id: "TASK-evil", kind: "TASK", title: "evil", file: "todo/EPIC-x/TASK-evil.todo.md", folder: "active", status: "todo", url: 'javascript:alert(1)" onmouseover="alert(2)' })}\n`;
+  const result = run(root, ["dashboard", "-"], jsonl);
+  assert.equal(result.code, 0);
+  assert.ok(result.stdout.includes('"id": "TASK-evil"'));
+  assert.ok(!result.stdout.includes('"url":'));
+  assert.ok(!result.stdout.includes("javascript:"));
+  assert.ok(!result.stdout.includes("onmouseover="));
+});
+
+test("dashboard: JSONL with --base re-derives url from file instead of trusting input", () => {
+  const root = board();
+  const jsonl = `${JSON.stringify({ id: "TASK-evil2", kind: "TASK", title: "evil2", file: "todo/EPIC-x/TASK-evil2.todo.md", folder: "active", status: "todo", url: "javascript:alert(1)" })}\n`;
+  const result = run(root, ["dashboard", "-", `--base=${root}`], jsonl);
+  assert.equal(result.code, 0);
+  assert.ok(result.stdout.includes(`"url": ${JSON.stringify(pathToFileURL(resolve(root, "todo/EPIC-x/TASK-evil2.todo.md")).href)}`));
+  assert.ok(!result.stdout.includes("javascript:"));
+});
+
+test("dashboard: encodes spaces and non-ASCII segments of nested file paths", () => {
+  const root = board();
+  const epicDir = resolve(root, "todo/EPIC-spëcial");
+  mkdirSync(epicDir, { recursive: true });
+  writeFileSync(resolve(epicDir, "TASK-sp ace.todo.md"), "---\nstatus: todo\n---\n# TASK-sp ace\n");
+  const result = run(root, ["dashboard"]);
+  assert.equal(result.code, 0);
+  const url = pathToFileURL(resolve(root, "todo/EPIC-spëcial/TASK-sp ace.todo.md")).href;
+  assert.ok(url.includes("%20") && url.includes("%C3%AB"));
+  assert.ok(result.stdout.includes(`"url": ${JSON.stringify(url)}`));
 });
 
 test("dashboard: accepts JSONL stdin", () => {

@@ -236,9 +236,13 @@ function commandDashboard(args: string[], io: CliIo): number {
   rejectUnknown(parsed, new Set(), new Set(["output", "title", "base"]));
   const input = parsed.values[0];
   let records: ExportRecord[];
+  let base = parsed.options.base;
   if (!input || (input !== "-" && existsSync(input) && statSync(input).isDirectory())) {
     const files = findTodoFiles(input ?? io.cwd()).sort();
     records = files.map((file) => extractRecord(file, io.cwd())).filter(isRecord);
+    // extractRecord() stores `file` relative to the working directory, so it is
+    // the natural base; an explicit --base still wins.
+    base ??= io.cwd();
   } else {
     const raw = input === "-" ? io.stdin() : readFileSync(input, "utf8");
     records = [];
@@ -248,7 +252,7 @@ function commandDashboard(args: string[], io: CliIo): number {
       catch { io.stderr("Warning: skipping invalid JSON line\n"); }
     }
   }
-  const html = renderDashboard(records, parsed.options.title ?? "Задачи", parsed.options.base);
+  const html = renderDashboard(records, parsed.options.title ?? "Задачи", base);
   if (parsed.options.output) {
     writeFileSync(parsed.options.output, html);
     io.stderr(`Wrote ${parsed.options.output} (${records.length} task(s)).\n`);
@@ -292,4 +296,4 @@ function transitionHelp(verb: string, status: string): string {
 const SET_HELP = `todo-md set — point-edit front-matter fields.\n\nUsage:\n  todo-md set <ID> <field>=<value> [field=value ...] [--root=<path>]\n\nIf field is \`status\`, the full transition runs and it must be the only assignment.\nSetting or clearing \`epic\` atomically moves a task to its canonical directory and rewrites links.\n`;
 const VALIDATE_HELP = `todo-md validate — validate todo-md task and epic files.\n\nUsage:\n  todo-md validate [target-dir|file ...]\n\nOptions:\n  --strict        Treat actor warnings as errors.\n  --config=FILE   Config file (default: <project-root>/.todo-md.json).\n  --help          Show this help.\n`;
 const EXPORT_HELP = `todo-md export-jsonl — export metadata as JSON Lines.\n\nUsage:\n  todo-md export-jsonl [target-dir|file ...] [-o FILE]\n`;
-const DASHBOARD_HELP = `todo-md dashboard — render a self-contained HTML dashboard.\n\nUsage:\n  todo-md dashboard [todo-dir|-|input.jsonl] [-o out.html] [--title="..."] [--base=DIR]\n`;
+const DASHBOARD_HELP = `todo-md dashboard — render a self-contained HTML dashboard.\n\nUsage:\n  todo-md dashboard [todo-dir|-|input.jsonl] [-o out.html] [--title="..."] [--base=DIR]\n\nFile links (file:// URL on task cards and epic headers):\n  todo-dir or no input — base is taken from the current working directory automatically.\n  input.jsonl or -     — relative "file" values need an explicit --base=DIR; without it\n                         records keep no link (absolute "file" values are linked as-is).\n  --base=DIR           — overrides the automatic base.\n`;

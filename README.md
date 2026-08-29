@@ -156,9 +156,6 @@ npx todo-md dashboard todo/ -o dashboard.html
 # Из текущей директории (todo/ по умолчанию)
 npx todo-md dashboard -o dashboard.html
 
-# С файловыми ссылками на исходники
-npx todo-md dashboard todo/ -o dashboard.html --base="$(pwd)"
-
 # Продвинутый вариант: через JSONL (для пайпов и промежуточных файлов)
 npx todo-md export-jsonl todo/ | npx todo-md dashboard - -o dashboard.html
 
@@ -167,6 +164,16 @@ npx todo-md export-jsonl todo/ -o /tmp/tasks.jsonl
 npx todo-md dashboard /tmp/tasks.jsonl -o dashboard.html --base="$(pwd)"
 
 ```
+
+**Файловые ссылки.** Карточки задач и заголовки эпиков открывают исходный
+`.todo.md` по `file://`-ссылке, включая вложенные пути `todo/<zone>/EPIC-x/…`.
+База для относительных путей определяется автоматически:
+
+- при чтении директории напрямую (`todo-md dashboard [todo-dir]`) — от текущей
+  рабочей директории, `--base` не нужен;
+- для JSONL-файла или stdin — только через явный `--base=DIR` (происхождение
+  относительных путей из JSONL надёжно угадать нельзя); без `--base` записи
+  остаются без ссылок. Абсолютные значения `file` связываются как есть.
 Активная вкладка запоминается в URL (`#board`, `#charts`, `#gantt`) — переживает F5 и даёт прямые ссылки.
 
 ### Доска
