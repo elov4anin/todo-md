@@ -18,6 +18,8 @@ export declare function buildIdIndex(files: string[]): IdIndex;
 export declare function makeRelativePath(path: string, baseDir: string): string;
 export declare function detectFolder(file: string): "active" | "backlog" | "done" | "cancelled";
 export declare function folderForStatus(status: string): string;
+export declare function isSafeItemId(id: string, expectedKind?: TaskKind): boolean;
+export declare function canonicalTodoPath(root: string, status: string, kind: TaskKind, id: string, epic?: string): string;
 export declare function normalizeMarkdownLinkTarget(rawTarget: string): string | null;
 export declare function shouldSkipLinkTarget(target: string): boolean;
 export declare function stripLinkFragmentAndQuery(target: string): string;

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach } from "node:test";
 import { main, type CliIo } from "../src/cli.js";
+import { findFileById } from "../src/parser.js";
 
 const temporary = new Set<string>();
 
@@ -42,13 +43,13 @@ export function createTask(root: string, id = "TASK-example", overrides: Record<
     const set = run(root, ["set", id, ...assignments]);
     if (set.code !== 0) throw new Error(set.stderr);
   }
-  return file;
+  return findFileById(root, id) ?? file;
 }
 
 export function createEpic(root: string, id = "EPIC-example"): string {
   const result = run(root, ["create", id, "--author=Архитектор (codex)"]);
   if (result.code !== 0) throw new Error(result.stderr);
-  return resolve(root, "todo", `${id}.todo.md`);
+  return resolve(root, "todo", id, `${id}.todo.md`);
 }
 
 export function field(file: string, name: string): string | null {

@@ -56,7 +56,7 @@ stateDiagram-v2
 Диаграмма отражает порядок статусов, а не момент перехода: момент перевода в `done` определяет процесс проекта.
 
 ### Основные переходы
-1.  **Создание:** Задача создается в `todo/backlog/` (статус `backlog`) или сразу в `todo/` (статус `todo`), если готова к работе.
+1.  **Создание:** Задача создается в `todo/backlog/` (статус `backlog`) или сразу в `todo/` (статус `todo`), если готова к работе. Эпик и связанные задачи размещаются внутри каталога `EPIC-*` соответствующей зоны.
 2.  **В работу:** Из `backlog` перемещается в `todo/` и меняет статус на `todo`.
 3.  **Выполнение:** При начале работы статус меняется на `in_progress`.
 4.  **Приостановка/Блокировка:** При возникновении проблем статус меняется на `paused` или `blocked`. Файл остается в `todo/`.
@@ -79,6 +79,7 @@ stateDiagram-v2
 # Создание
 npx todo-md create  TASK-feature-name --type=feat --title="..."   # задача
 npx todo-md create  EPIC-big-thing --title="Большая фича"         # эпик (без --type)
+npx todo-md create  TASK-feature-part --type=feat --epic=EPIC-big-thing --title="..."
 
 # Переходы — одинаково для задач и эпиков
 npx todo-md start   TASK-name   # → in_progress
@@ -89,5 +90,10 @@ npx todo-md backlog TASK-name   # → backlog (перенос в backlog/)
 ```
 
 Команды `start`, `done`, `cancel` автоматически проставляют lifecycle-даты (`started`, `completed`, `cancelled`).
+
+Переход сохраняет каталог эпика: `todo/EPIC-x/TASK-y.todo.md` переносится,
+например, в `todo/done/EPIC-x/TASK-y.todo.md`. Переход самого эпика перемещает
+только файл эпика. `todo-md set TASK-y epic=EPIC-x` и очистка `epic=` также
+атомарно перемещают файл и исправляют относительные Markdown-ссылки.
 
 Возврат из `done` допустим (например, в `review` при замечаниях ревью).

@@ -7,6 +7,8 @@ import {
   type TaskStatus,
 } from "./domain.js";
 
+const SAFE_ITEM_ID = /^(TASK|EPIC)-[A-Za-z0-9][A-Za-z0-9_-]*$/u;
+
 export interface ParsedFrontMatter {
   frontMatter: string;
   body: string;
@@ -143,6 +145,31 @@ export function detectFolder(file: string): "active" | "backlog" | "done" | "can
 
 export function folderForStatus(status: string): string {
   return FOLDER_FOR_STATUS[status as TaskStatus] ?? "";
+}
+
+export function isSafeItemId(id: string, expectedKind?: TaskKind): boolean {
+  if (!SAFE_ITEM_ID.test(id)) return false;
+  return expectedKind === undefined || detectKind(id) === expectedKind;
+}
+
+export function canonicalTodoPath(
+  root: string,
+  status: string,
+  kind: TaskKind,
+  id: string,
+  epic = "",
+): string {
+  if (!isSafeItemId(id, kind)) throw new Error(`unsafe ${kind} ID: ${id}`);
+  if (epic !== "" && !isSafeItemId(epic, "epic")) throw new Error(`unsafe epic ID: ${epic}`);
+  const todoRoot = resolve(root, "todo");
+  const zone = folderForStatus(status);
+  const group = kind === "epic" ? id : epic;
+  const candidate = resolve(todoRoot, zone, group, `${id}.todo.md`);
+  const withinTodo = relative(todoRoot, candidate);
+  if (withinTodo === "" || withinTodo === ".." || withinTodo.startsWith(`..${sep}`) || isAbsolute(withinTodo)) {
+    throw new Error(`canonical path escapes todo/: ${id}`);
+  }
+  return candidate;
 }
 
 export function normalizeMarkdownLinkTarget(rawTarget: string): string | null {

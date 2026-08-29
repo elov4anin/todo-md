@@ -120,6 +120,23 @@ test("validate: epic references work", () => {
   assert.equal(run(root, ["validate", file]).code, 0);
 });
 
+test("validate: legacy flat epic layout warns, foreign epic directory fails", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  const flat = createTask(root, "TASK-child");
+  replace(flat, /^epic:.*$/mu, "epic: EPIC-parent");
+  const legacy = run(root, ["validate", flat]);
+  assert.equal(legacy.code, 0);
+  assert.match(legacy.stdout, /legacy flat layout/u);
+  const foreignDirectory = resolve(root, "todo/EPIC-other");
+  mkdirSync(foreignDirectory);
+  const foreign = resolve(foreignDirectory, "TASK-child.todo.md");
+  renameSync(flat, foreign);
+  const invalid = run(root, ["validate", foreign]);
+  assert.equal(invalid.code, 1);
+  assert.match(invalid.stdout, /canonical epic directory/u);
+});
+
 test("validate: --help works", () => {
   const result = run(board(), ["validate", "--help"]);
   assert.equal(result.code, 0);

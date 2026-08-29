@@ -41,11 +41,16 @@
 ```
 todo/
 ├── AGENTS.md               ← правила для AI-агентов (из пакета)
-├── backlog/                ← backlog-задачи
-├── done/                   ← завершённые задачи
-├── cancelled/              ← отменённые задачи
+├── backlog/                ← backlog-задачи и каталоги эпиков
+│   └── EPIC-*/             ← эпик и/или его backlog-задачи
+├── done/                   ← завершённые задачи и каталоги эпиков
+│   └── EPIC-*/             ← завершённые элементы эпика
+├── cancelled/              ← отменённые задачи и каталоги эпиков
+│   └── EPIC-*/             ← отменённые элементы эпика
 ├── TASK-*.todo.md          ← активные задачи
-└── EPIC-*.todo.md          ← активные эпики
+└── EPIC-*/                 ← активный эпик и связанные активные задачи
+    ├── EPIC-*.todo.md
+    └── TASK-*.todo.md
 
 docs/todo-md/              ← документация (из пакета)
 ```
@@ -93,7 +98,8 @@ npx todo-md validate
 - секцию `Простое описание (Human Brief)`;
 - обязательные разделы задачи и эпика;
 - локальные Markdown-ссылки, чтобы ссылки не ломались после перемещения задач между папками;
-- соответствие статуса папке (`backlog`, `done`, `cancelled`).
+- соответствие статуса папке (`backlog`, `done`, `cancelled`);
+- соответствие каталога `EPIC-*` ID эпика и полю `epic`; старый плоский layout выдаёт предупреждение.
 
 Можно проверить конкретный файл или директорию:
 
@@ -113,6 +119,9 @@ npx todo-md create TASK-feature-name --type=feat --author="<роль>" --title="
 # Создать эпик
 npx todo-md create EPIC-big-thing --author="<роль>" --title="Большая фича"
 
+# Создать задачу эпика в его каталоге
+npx todo-md create TASK-feature-part --type=feat --author="<роль>" --epic=EPIC-big-thing
+
 # Переходы статусов
 npx todo-md start  TASK-foo --assignee="<роль>"   # → in_progress (проставляет started)
 npx todo-md review TASK-foo   # → review
@@ -124,7 +133,14 @@ npx todo-md backlog TASK-foo  # → backlog, перенос в backlog/
 npx todo-md set TASK-foo priority=P1
 npx todo-md set TASK-foo branch=task/foo
 npx todo-md set TASK-foo pr=https://github.com/...
+npx todo-md set TASK-foo epic=EPIC-big-thing  # переносит в каталог эпика
+npx todo-md set TASK-foo epic=                # делает задачу самостоятельной
 ```
+
+Эпик хранится в `todo/<zone>/EPIC-x/EPIC-x.todo.md`, а связанная задача — в
+`todo/<zone>/EPIC-x/TASK-y.todo.md`. Статус каждого файла независим: переход
+эпика не переносит его задачи. Команды перехода сохраняют каталог эпика и при
+первом изменении нормализуют старые плоские файлы.
 
 При ошибке валидации все изменения откатываются. Опция `--root=<путь>` задаёт
 корень проекта (по умолчанию — текущая директория).

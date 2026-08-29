@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { ACTIVE_STATUSES, AI_AGENTS, COMPLEXITIES, PRIORITIES, STATUSES, TASK_TYPES, VALUES, } from "./domain.js";
 import { loadConfig } from "./config.js";
-import { buildIdIndex, detectKind, extractMarkdownLinks, fileId, findTodoFiles, parseFrontMatter, parseSimpleYaml, removeBom, stripLinkFragmentAndQuery, } from "./parser.js";
+import { buildIdIndex, canonicalTodoPath, detectKind, extractMarkdownLinks, fileId, findTodoFiles, parseFrontMatter, parseSimpleYaml, removeBom, stripLinkFragmentAndQuery, } from "./parser.js";
 const ASSIGNEE_REQUIRED_STATUSES = ["in_progress", "paused", "blocked", "review", "done"];
 const DEFAULT_VALIDATION_CONFIG = { roles: [], agents: [], strict: false };
 export function validateFile(file, idIndex, config = DEFAULT_VALIDATION_CONFIG) {
@@ -29,6 +29,7 @@ export function validateFile(file, idIndex, config = DEFAULT_VALIDATION_CONFIG) 
     validateSections(parsed.body, kind, errors);
     validateChangeHistory(parsed.body, errors);
     validateFolderStatus(file, frontMatter.status ?? "", errors);
+    validateDirectoryLayout(file, id, kind, frontMatter, errors, warnings);
     validateMarkdownLinks(file, parsed.body, errors);
     validateNoTemplatePlaceholders(content, errors);
     return { errors, warnings };
@@ -91,8 +92,49 @@ function validateDependencies(frontMatter, idIndex, errors, warnings) {
         }
     }
     const epic = frontMatter.epic ?? "";
-    if (/^EPIC-[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(epic) && !(epic in idIndex)) {
-        errors.push(`\`epic\` references unknown ID: ${epic}`);
+    if (/^EPIC-[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(epic)) {
+        if (!(epic in idIndex))
+            errors.push(`\`epic\` references unknown ID: ${epic}`);
+        else if (idIndex[epic]?.kind !== "epic")
+            errors.push(`\`epic\` references a non-epic ID: ${epic}`);
+    }
+}
+function validateDirectoryLayout(file, id, kind, frontMatter, errors, warnings) {
+    if (!kind)
+        return;
+    const todoRoot = findTodoAncestor(file);
+    if (!todoRoot)
+        return;
+    let expected;
+    try {
+        expected = canonicalTodoPath(dirname(todoRoot), frontMatter.status ?? "", kind, id, frontMatter.epic ?? "");
+    }
+    catch {
+        return;
+    }
+    if (resolve(file) === expected)
+        return;
+    const zone = dirname(expected);
+    const group = kind === "epic" ? id : (frontMatter.epic ?? "");
+    const zoneRoot = group === "" ? zone : dirname(zone);
+    const legacy = resolve(zoneRoot, basename(file));
+    const expectedRelative = relative(dirname(todoRoot), expected).replaceAll("\\", "/");
+    if (resolve(file) === legacy && group !== "") {
+        warnings.push(`legacy flat layout; canonical path is ${expectedRelative}`);
+    }
+    else {
+        errors.push(`file must use canonical epic directory: ${expectedRelative}`);
+    }
+}
+function findTodoAncestor(file) {
+    let current = dirname(resolve(file));
+    while (true) {
+        if (basename(current) === "todo")
+            return current;
+        const parent = dirname(current);
+        if (parent === current)
+            return null;
+        current = parent;
     }
 }
 function validateDate(field, value, errors) {

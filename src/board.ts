@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   LIFECYCLE_FIELD,
   STATUSES,
@@ -10,9 +10,9 @@ import {
 import {
   detectEol,
   detectKind,
+  canonicalTodoPath,
   findFileById,
   findTodoFiles,
-  folderForStatus,
   makeRelativePath,
   normalizeMarkdownLinkTarget,
   parseFrontMatter,
@@ -114,6 +114,9 @@ export function transition(
   const file = findFileById(root, id);
   if (!file) throw new TodoMdError(`task not found: ${id}`);
   const content = readFileSync(file, "utf8");
+  const metadata = parseMetadata(content);
+  const kind = detectKind(id);
+  if (!kind) throw new TodoMdError(`invalid task/epic ID: ${id}`);
   if (newStatus === "done" && !getFieldFromContent(content, "pr")?.trim()) {
     throw new TodoMdError(`field \`pr\` must be set before done — use: todo-md set ${id} pr=<url>`);
   }
@@ -121,9 +124,9 @@ export function transition(
   const lifecycle = LIFECYCLE_FIELD[newStatus as TaskStatus];
   if (lifecycle) next = setFieldInContent(next, lifecycle, nowTimestamp());
   if (options.assignee !== undefined) next = setFieldInContent(next, "assignee", options.assignee);
-  const subfolder = folderForStatus(newStatus);
-  const newDirectory = subfolder === "" ? resolve(root, "todo") : resolve(root, "todo", subfolder);
-  const newPath = resolve(newDirectory, basename(file));
+  const newPath = safeCanonicalPath(root, newStatus, kind, id, metadata.epic ?? "");
+  ensureMoveTargetAvailable(file, newPath);
+  const newDirectory = dirname(newPath);
   const moved = resolve(file) !== newPath;
   if (moved) next = rewriteOutboundLinks(next, dirname(file), newDirectory);
   const inbound = moved ? computeInboundRewrites(root, file, newPath) : new Map<string, string>();
@@ -158,12 +161,14 @@ export function create(root: string, id: string, options: CreateOptions = {}): s
   if (kind === "task" && (!type || !TASK_TYPES.includes(type as never))) {
     throw new TodoMdError(`--type is required for tasks, one of: ${TASK_TYPES.join(", ")}`);
   }
+  const epic = options.epic ?? "";
+  if (kind === "epic" && epic !== "") throw new TodoMdError("--epic can only be used with tasks");
+  if (kind === "task" && epic !== "") assertExistingEpic(root, epic);
   const title = options.title ?? defaultTitle(id);
   const content = kind === "epic"
     ? renderEpicSkeleton(id, title, options)
     : renderTaskSkeleton(id, title, type ?? "", options, status);
-  const folder = folderForStatus(status);
-  const newPath = resolve(root, "todo", folder, `${id}.todo.md`);
+  const newPath = safeCanonicalPath(root, status, kind, id, epic);
   const transaction = new FileTransaction();
   transaction.write(newPath, content);
   transaction.commit();
@@ -191,17 +196,31 @@ export function setFields(root: string, id: string, fields: Record<string, strin
   const file = findFileById(root, id);
   if (!file) throw new TodoMdError(`task not found: ${id}`);
   const content = readFileSync(file, "utf8");
+  const kind = detectKind(id);
+  if (!kind) throw new TodoMdError(`invalid task/epic ID: ${id}`);
+  if ("epic" in fields) {
+    if (kind !== "task") throw new TodoMdError("field `epic` can only be set on tasks");
+    if ((fields.epic ?? "") !== "") assertExistingEpic(root, fields.epic ?? "");
+  }
   let next = content;
   for (const [field, value] of entries) {
     const updated = setFieldInContent(next, field, value);
     if (updated === next) throw new TodoMdError(`could not set field (no front matter?): ${field}`);
     next = updated;
   }
+  const metadata = parseMetadata(next);
+  const newPath = safeCanonicalPath(root, metadata.status ?? "", kind, id, metadata.epic ?? "");
+  ensureMoveTargetAvailable(file, newPath);
+  const moved = resolve(file) !== resolve(newPath);
+  if (moved) next = rewriteOutboundLinks(next, dirname(file), dirname(newPath));
+  const inbound = moved ? computeInboundRewrites(root, file, newPath) : new Map<string, string>();
   const transaction = new FileTransaction();
-  transaction.write(file, next);
+  for (const [linker, rewritten] of inbound) transaction.write(linker, rewritten);
+  transaction.write(newPath, next);
+  if (moved) transaction.delete(file);
   transaction.commit();
   try {
-    const result = checkOnBoard(root, file);
+    const result = checkOnBoard(root, newPath);
     if (result.errors.length > 0) {
       throw new TodoMdError(`validation failed after set — rolled back:\n  ${result.errors.join("\n  ")}`);
     }
@@ -211,8 +230,38 @@ export function setFields(root: string, id: string, fields: Record<string, strin
   }
   const applied = entries.map(([field, value]) => `${field} = ${value}`).join(", ");
   return entries.length === 1
-    ? `set ${id}.${entries[0]?.[0]} = ${entries[0]?.[1]} (${makeRelativePath(file, root)})`
-    : `set ${id}: ${applied} (${makeRelativePath(file, root)})`;
+    ? `set ${id}.${entries[0]?.[0]} = ${entries[0]?.[1]} (${makeRelativePath(newPath, root)})`
+    : `set ${id}: ${applied} (${makeRelativePath(newPath, root)})`;
+}
+
+function parseMetadata(content: string): Record<string, string> {
+  const parsed = parseFrontMatter(removeBom(content));
+  if (parsed.error) throw new TodoMdError(`could not read front matter: ${parsed.error}`);
+  return parseSimpleYaml(parsed.frontMatter);
+}
+
+function safeCanonicalPath(
+  root: string, status: string, kind: "task" | "epic", id: string, epic: string,
+): string {
+  try {
+    return canonicalTodoPath(root, status, kind, id, epic);
+  } catch (error) {
+    throw new TodoMdError(error instanceof Error ? error.message : String(error));
+  }
+}
+
+function assertExistingEpic(root: string, epic: string): void {
+  if (!/^EPIC-[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(epic)) throw new TodoMdError(`unsafe epic ID: ${epic}`);
+  const file = findFileById(root, epic);
+  if (!file) throw new TodoMdError(`epic not found: ${epic}`);
+  const metadata = parseMetadata(readFileSync(file, "utf8"));
+  if (metadata.type !== "epic") throw new TodoMdError(`referenced ID is not an epic: ${epic}`);
+}
+
+function ensureMoveTargetAvailable(source: string, target: string): void {
+  if (resolve(source) !== resolve(target) && existsSync(target)) {
+    throw new TodoMdError(`canonical path already exists: ${target}`);
+  }
 }
 
 function renderTaskSkeleton(id: string, title: string, type: string, options: CreateOptions, status: string): string {

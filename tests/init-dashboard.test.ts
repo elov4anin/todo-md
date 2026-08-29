@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { board, createTask, run } from "./support.js";
+import { board, createEpic, createTask, run } from "./support.js";
 
 test("init: scaffolds JSON config", () => {
   const root = board();
@@ -52,6 +52,16 @@ test("dashboard: renders tasks and embeds Chart.js", () => {
   assert.match(result.stdout, /TASK-example/u);
   assert.doesNotMatch(result.stdout, /cdn\.jsdelivr/u);
   assert.match(result.stdout, /Chart\.js/u);
+});
+
+test("dashboard: recursively renders a task from an epic directory", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  assert.equal(run(root, ["create", "TASK-child", "--type=feat", "--author=Разработчик (codex)", "--epic=EPIC-parent"]).code, 0);
+  const result = run(root, ["dashboard"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /TASK-child/u);
+  assert.match(result.stdout, /todo\/EPIC-parent\/TASK-child\.todo\.md/u);
 });
 
 test("dashboard: accepts JSONL stdin", () => {

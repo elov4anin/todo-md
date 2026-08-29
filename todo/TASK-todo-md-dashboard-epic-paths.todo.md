@@ -116,7 +116,7 @@ npx todo-md dashboard todo/ -o /tmp/todo-md-dashboard.html
 
 ## 8. Источники (Sources)
 
-- [Родительская задача](TASK-todo-md-epic-directory-layout.todo.md).
+- [Родительская задача](done/TASK-todo-md-epic-directory-layout.todo.md).
 - `src/dashboard.ts` — преобразование `file` в `url` только при абсолютном пути или `base`.
 - `src/cli.ts` — directory/JSONL/stdin режимы команды dashboard.
 - `src/export.ts` — формирование `file`, `folder`, `status`, `epic`.

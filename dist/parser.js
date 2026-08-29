@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { FOLDER_FOR_STATUS, } from "./domain.js";
+const SAFE_ITEM_ID = /^(TASK|EPIC)-[A-Za-z0-9][A-Za-z0-9_-]*$/u;
 export function removeBom(content) {
     return content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
 }
@@ -130,6 +131,26 @@ export function detectFolder(file) {
 }
 export function folderForStatus(status) {
     return FOLDER_FOR_STATUS[status] ?? "";
+}
+export function isSafeItemId(id, expectedKind) {
+    if (!SAFE_ITEM_ID.test(id))
+        return false;
+    return expectedKind === undefined || detectKind(id) === expectedKind;
+}
+export function canonicalTodoPath(root, status, kind, id, epic = "") {
+    if (!isSafeItemId(id, kind))
+        throw new Error(`unsafe ${kind} ID: ${id}`);
+    if (epic !== "" && !isSafeItemId(epic, "epic"))
+        throw new Error(`unsafe epic ID: ${epic}`);
+    const todoRoot = resolve(root, "todo");
+    const zone = folderForStatus(status);
+    const group = kind === "epic" ? id : epic;
+    const candidate = resolve(todoRoot, zone, group, `${id}.todo.md`);
+    const withinTodo = relative(todoRoot, candidate);
+    if (withinTodo === "" || withinTodo === ".." || withinTodo.startsWith(`..${sep}`) || isAbsolute(withinTodo)) {
+        throw new Error(`canonical path escapes todo/: ${id}`);
+    }
+    return candidate;
 }
 export function normalizeMarkdownLinkTarget(rawTarget) {
     let target = rawTarget.trim();

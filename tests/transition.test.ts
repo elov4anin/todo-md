@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { board, createTask, field, replace, run } from "./support.js";
+import { board, createEpic, createTask, field, replace, run } from "./support.js";
 
 test("transition: start sets in_progress + started date", () => {
   const root = board();
@@ -180,4 +180,87 @@ test("transition: creates missing canonical directory", () => {
   // directory is recreated by the transaction when absent
   mkdirSync(resolve(root, "todo/backlog"), { recursive: true });
   assert.equal(run(root, ["backlog", "TASK-dir"]).code, 0);
+});
+
+test("transition: epic task keeps its group through every zone", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  assert.equal(run(root, ["create", "TASK-child", "--type=feat", "--author=Разработчик (codex)", "--epic=EPIC-parent"]).code, 0);
+  assert.equal(run(root, ["backlog", "TASK-child"]).code, 0);
+  assert.ok(existsSync(resolve(root, "todo/backlog/EPIC-parent/TASK-child.todo.md")));
+  assert.equal(run(root, ["start", "TASK-child", "--assignee=Разработчик (codex)"]).code, 0);
+  assert.equal(run(root, ["review", "TASK-child"]).code, 0);
+  assert.ok(existsSync(resolve(root, "todo/EPIC-parent/TASK-child.todo.md")));
+  assert.equal(run(root, ["set", "TASK-child", "pr=https://example.test/pr/1"]).code, 0);
+  assert.equal(run(root, ["done", "TASK-child"]).code, 0);
+  assert.ok(existsSync(resolve(root, "todo/done/EPIC-parent/TASK-child.todo.md")));
+});
+
+test("transition: active status normalizes a legacy flat epic task", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  const flat = createTask(root, "TASK-legacy");
+  replace(flat, /^epic:.*$/mu, "epic: EPIC-parent");
+  assert.equal(run(root, ["review", "TASK-legacy"]).code, 0);
+  assert.ok(!existsSync(flat));
+  assert.ok(existsSync(resolve(root, "todo/EPIC-parent/TASK-legacy.todo.md")));
+});
+
+test("set: epic assignment, change, and clearing move the task", () => {
+  const root = board();
+  createEpic(root, "EPIC-one");
+  createEpic(root, "EPIC-two");
+  const flat = createTask(root, "TASK-move");
+  assert.equal(run(root, ["set", "TASK-move", "epic=EPIC-one"]).code, 0);
+  assert.ok(existsSync(resolve(root, "todo/EPIC-one/TASK-move.todo.md")));
+  assert.equal(run(root, ["set", "TASK-move", "epic=EPIC-two"]).code, 0);
+  assert.ok(existsSync(resolve(root, "todo/EPIC-two/TASK-move.todo.md")));
+  assert.equal(run(root, ["set", "TASK-move", "epic="]).code, 0);
+  assert.ok(existsSync(flat));
+});
+
+test("set: epic assignment rebases outbound and inbound links", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  const target = createTask(root, "TASK-target");
+  const linker = createTask(root, "TASK-linker");
+  writeFileSync(resolve(root, "ref.md"), "# Ref\n");
+  replace(target, "## 8. Источники (Sources)", "## 8. Источники (Sources)\n\n[ref](../ref.md)\n![image](../image.png)\n[anchor](#local)");
+  replace(linker, "## 8. Источники (Sources)", "## 8. Источники (Sources)\n\n[target](TASK-target.todo.md)");
+  assert.equal(run(root, ["set", "TASK-target", "epic=EPIC-parent"]).code, 0);
+  const moved = resolve(root, "todo/EPIC-parent/TASK-target.todo.md");
+  const movedContent = readFileSync(moved, "utf8");
+  assert.match(movedContent, /\[ref\]\(\.\.\/\.\.\/ref\.md\)/u);
+  assert.match(movedContent, /!\[image\]\(\.\.\/image\.png\)/u);
+  assert.match(movedContent, /\[anchor\]\(#local\)/u);
+  assert.match(readFileSync(linker, "utf8"), /\[target\]\(EPIC-parent\/TASK-target\.todo\.md\)/u);
+});
+
+test("set: validation rollback restores path and inbound links", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  const target = createTask(root, "TASK-broken-set");
+  const linker = createTask(root, "TASK-linker");
+  replace(linker, "## 8. Источники (Sources)", "## 8. Источники (Sources)\n\n[target](TASK-broken-set.todo.md)");
+  replace(target, "## 5. Критерии приёмки (Definition of Done)", "## Removed");
+  const targetBefore = readFileSync(target, "utf8");
+  const linkerBefore = readFileSync(linker, "utf8");
+  const result = run(root, ["set", "TASK-broken-set", "epic=EPIC-parent"]);
+  assert.equal(result.code, 1);
+  assert.equal(readFileSync(target, "utf8"), targetBefore);
+  assert.equal(readFileSync(linker, "utf8"), linkerBefore);
+  assert.ok(!existsSync(resolve(root, "todo/EPIC-parent/TASK-broken-set.todo.md")));
+});
+
+test("set: epic collision fails without changing source", () => {
+  const root = board();
+  createEpic(root, "EPIC-parent");
+  const source = createTask(root, "TASK-collision");
+  const before = readFileSync(source, "utf8");
+  const target = resolve(root, "todo/EPIC-parent/TASK-collision.todo.md");
+  writeFileSync(target, "occupied");
+  const result = run(root, ["set", "TASK-collision", "epic=EPIC-parent"]);
+  assert.equal(result.code, 1);
+  assert.equal(readFileSync(source, "utf8"), before);
+  assert.equal(readFileSync(target, "utf8"), "occupied");
 });
