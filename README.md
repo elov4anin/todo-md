@@ -156,6 +156,9 @@ npx todo-md dashboard todo/ -o dashboard.html
 # Из текущей директории (todo/ по умолчанию)
 npx todo-md dashboard -o dashboard.html
 
+# С явным заголовком вместо «Задачи — <имя-каталога-проекта>»
+npx todo-md dashboard todo/ -o dashboard.html --title="Мой обзор"
+
 # Продвинутый вариант: через JSONL (для пайпов и промежуточных файлов)
 npx todo-md export-jsonl todo/ | npx todo-md dashboard - -o dashboard.html
 
@@ -164,6 +167,10 @@ npx todo-md export-jsonl todo/ -o /tmp/tasks.jsonl
 npx todo-md dashboard /tmp/tasks.jsonl -o dashboard.html --base="$(pwd)"
 
 ```
+
+По умолчанию имя текущей рабочей директории добавляется в заголовок страницы:
+`Задачи — <имя-каталога-проекта>`. Опция `--title="Мой обзор"` полностью
+переопределяет стандартный заголовок.
 
 **Файловые ссылки.** Карточки задач и заголовки эпиков открывают исходный
 `.todo.md` по `file://`-ссылке, включая вложенные пути `todo/<zone>/EPIC-x/…`.

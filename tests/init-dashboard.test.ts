@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 import { board, createEpic, createTask, run } from "./support.js";
@@ -54,9 +54,55 @@ test("dashboard: renders tasks and embeds Chart.js", () => {
   createTask(root);
   const result = run(root, ["dashboard"]);
   assert.equal(result.code, 0);
+  const title = `Задачи — ${basename(root)}`;
+  assert.ok(result.stdout.includes(`<title>${title}</title>`));
+  assert.ok(result.stdout.includes(`<h1>${title}</h1>`));
   assert.match(result.stdout, /TASK-example/u);
   assert.doesNotMatch(result.stdout, /cdn\.jsdelivr/u);
   assert.match(result.stdout, /Chart\.js/u);
+});
+
+test("dashboard: uses the project directory in the default title for every input mode", () => {
+  const root = board();
+  createTask(root);
+  const input = resolve(root, "tasks.jsonl");
+  const jsonl = `${JSON.stringify({ id: "TASK-title", kind: "TASK", title: "title", file: "todo/TASK-title.todo.md", folder: "active", status: "todo" })}\n`;
+  writeFileSync(input, jsonl);
+  const expected = `<title>Задачи — ${basename(root)}</title>`;
+
+  for (const result of [
+    run(root, ["dashboard"]),
+    run(root, ["dashboard", input]),
+    run(root, ["dashboard", "-"], jsonl),
+  ]) {
+    assert.equal(result.code, 0);
+    assert.ok(result.stdout.includes(expected));
+  }
+});
+
+test("dashboard: escapes the project directory name in the default title", () => {
+  const parent = board();
+  const root = resolve(parent, `project & <demo> "'`);
+  for (const directory of ["todo", "todo/backlog", "todo/done", "todo/cancelled"]) {
+    mkdirSync(resolve(root, directory), { recursive: true });
+  }
+  createTask(root);
+
+  const result = run(root, ["dashboard"]);
+  assert.equal(result.code, 0);
+  const escaped = "Задачи — project &amp; &lt;demo&gt; &quot;&#039;";
+  assert.ok(result.stdout.includes(`<title>${escaped}</title>`));
+  assert.ok(result.stdout.includes(`<h1>${escaped}</h1>`));
+});
+
+test("dashboard: explicit title replaces the default title", () => {
+  const root = board();
+  createTask(root);
+  const result = run(root, ["dashboard", "--title=Мой & <обзор>"]);
+  assert.equal(result.code, 0);
+  assert.ok(result.stdout.includes("<title>Мой &amp; &lt;обзор&gt;</title>"));
+  assert.ok(result.stdout.includes("<h1>Мой &amp; &lt;обзор&gt;</h1>"));
+  assert.ok(!result.stdout.includes(`<title>Задачи — ${basename(root)}</title>`));
 });
 
 test("dashboard: recursively renders a task from an epic directory", () => {

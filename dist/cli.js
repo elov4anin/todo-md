@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import { create, resolveRoot, setFields, transition } from "./board.js";
 import { loadConfig, loadConfigFile } from "./config.js";
 import { TodoMdError } from "./domain.js";
@@ -268,7 +269,8 @@ function commandDashboard(args, io) {
             }
         }
     }
-    const html = renderDashboard(records, parsed.options.title ?? "Задачи", base);
+    const defaultTitle = `Задачи — ${basename(resolve(io.cwd()))}`;
+    const html = renderDashboard(records, parsed.options.title ?? defaultTitle, base);
     if (parsed.options.output) {
         writeFileSync(parsed.options.output, html);
         io.stderr(`Wrote ${parsed.options.output} (${records.length} task(s)).\n`);
@@ -306,5 +308,5 @@ function transitionHelp(verb, status) {
 const SET_HELP = `todo-md set — point-edit front-matter fields.\n\nUsage:\n  todo-md set <ID> <field>=<value> [field=value ...] [--root=<path>]\n\nIf field is \`status\`, the full transition runs and it must be the only assignment.\nSetting or clearing \`epic\` atomically moves a task to its canonical directory and rewrites links.\n`;
 const VALIDATE_HELP = `todo-md validate — validate todo-md task and epic files.\n\nUsage:\n  todo-md validate [target-dir|file ...]\n\nOptions:\n  --strict        Treat actor warnings as errors.\n  --config=FILE   Config file (default: <project-root>/.todo-md.json).\n  --help          Show this help.\n`;
 const EXPORT_HELP = `todo-md export-jsonl — export metadata as JSON Lines.\n\nUsage:\n  todo-md export-jsonl [target-dir|file ...] [-o FILE]\n`;
-const DASHBOARD_HELP = `todo-md dashboard — render a self-contained HTML dashboard.\n\nUsage:\n  todo-md dashboard [todo-dir|-|input.jsonl] [-o out.html] [--title="..."] [--base=DIR]\n\nFile links (file:// URL on task cards and epic headers):\n  todo-dir or no input — base is taken from the current working directory automatically.\n  input.jsonl or -     — relative "file" values need an explicit --base=DIR; without it\n                         records keep no link (absolute "file" values are linked as-is).\n  --base=DIR           — overrides the automatic base.\n`;
+const DASHBOARD_HELP = `todo-md dashboard — render a self-contained HTML dashboard.\n\nUsage:\n  todo-md dashboard [todo-dir|-|input.jsonl] [-o out.html] [--title="..."] [--base=DIR]\n\nTitle:\n  Default              — "Задачи — <current-directory-name>".\n  --title=<title>       — use an explicit title without the directory name.\n\nFile links (file:// URL on task cards and epic headers):\n  todo-dir or no input — base is taken from the current working directory automatically.\n  input.jsonl or -     — relative "file" values need an explicit --base=DIR; without it\n                         records keep no link (absolute "file" values are linked as-is).\n  --base=DIR           — overrides the automatic base.\n`;
 //# sourceMappingURL=cli.js.map
